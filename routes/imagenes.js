@@ -7,6 +7,9 @@ const fs = require('fs');
 var app = express();
 
 // RUTAS
+// ====================================================
+// Obtener imagen
+// ====================================================
 app.get("/:tipo/:img", (req, res, next) => {
 
     var tipo = req.params.tipo;
@@ -23,6 +26,8 @@ app.get("/:tipo/:img", (req, res, next) => {
     }
 
 });
+
+
 
 
 
