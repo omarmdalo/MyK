@@ -7,6 +7,8 @@ var mdAutentificacion = require('../middlewares/autentificacion');
 
 var app = express();
 
+var mssql = require("mssql");
+
 var Usuario = require("../models/usuario");
 
 // ====================================================
@@ -97,39 +99,48 @@ app.put("/:id", mdAutentificacion.verificatoken, (req, res) => {
     });
 });
 
+
 // ====================================================
 // Crear un nuevo usuario
 // ====================================================
 
-app.post("/", mdAutentificacion.verificatoken, (req, res) => {
+// Middleware de Autificacion del token
+// mdAutentificacion.verificatoken
+app.post("/", (req, res) => {
     var body = req.body;
 
-    var usuario = Usuario({
-        nombre: body.nombre,
-        email: body.email,
-        password: bcryptjs.hashSync(body.password, 10),
-        img: body.img,
-        role: body.role
-    });
+    var request = new mssql.Request();
 
-    usuario.save((err, usuarioGuardado) => {
+    request.input('FirstName', mssql.VarChar, body.nombre);
+    request.input('LastName', mssql.VarChar, body.apellido);
+    request.input('Email', mssql.VarChar, body.email);
+    request.input('PasswordHash', mssql.VarChar, bcryptjs.hashSync(body.password, 10));
+    request.input('RolID', mssql.Int, 1);
+    request.input('ImgProfile', mssql.VarChar, 'noimg.jpg');
+    request.input('Active', mssql.Int, 1);
+
+    // Consulta a la base de datos
+    request.query("INSERT INTO [dbo].[User]([FirstName],[LastName],[Email],[PasswordHash],[RolID],[ImgProfile],[Active]) OUTPUT INSERTED.* VALUES (@FirstName ,@LastName, @Email, @PasswordHash, @RolID, @ImgProfile , @Active)", function(err, recordset) {
+
         if (err) {
             return res.status(400).json({
                 ok: false,
-                mensaje: "Error de BD al guardar el usuario",
+                mensaje: "Ocurrio un error en la base de datos",
                 errors: err
             });
         }
 
+        recordset.recordset[0].PasswordHash = ';)';
+
         res.status(201).json({
             ok: true,
             mensaje: "Usuario Guardado",
-            usuario: usuarioGuardado,
-            usuarioToken: req.usuario
+            usuario: recordset.recordset[0],
+            usuarioToken: 'Usuario token'
         });
+
     });
 });
-
 
 // ====================================================
 // Borrar un Usuario por el ID
